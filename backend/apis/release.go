@@ -126,33 +126,32 @@ func RandomHash() string {
 var CurrentHashs = make(map[string]string)
 
 func RunBuild(cwd, build_cmd string) (string, error) {
+	fmt.Println("debug.runbuild >> build_cmd", build_cmd)
+	fmt.Println("debug.runbuild >> cwd", cwd)
 	cmd := exec.Command("sh", "-c", build_cmd)
 	cmd.Dir = cwd
 	logDir := os.Getenv("LOG_DIR")
 	hash := RandomHash()
 	CurrentHashs[cwd] = hash
-	defer func() {
-		delete(CurrentHashs, cwd)
-	}()
-	conf_path := filepath.Join(logDir, fmt.Sprintf("tars-release-%s.log", hash))
-	fmt.Println("conf_path", conf_path)
+	logPath := filepath.Join(logDir, fmt.Sprintf("tars-release-%s.log", hash))
+	fmt.Println("conf_path", logPath)
 	// 检查文件是否存在
-	_, err := os.Stat(conf_path)
+	_, err := os.Stat(logPath)
 	if os.IsNotExist(err) {
 		// 如果文件不存在，创建一个新文件
-		file, err := os.Create(conf_path)
+		file, err := os.Create(logPath)
 		if err != nil {
 			return "", err
 		}
 		defer file.Close()
 	}
 	// 打开文件以重定向输出流
-	file, err := os.OpenFile(conf_path, os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return "", err
 	}
 	defer file.Close()
-	defer os.Remove(conf_path)
+	defer os.Remove(logPath)
 	cmd.Stdout = file
 	cmd.Stderr = file
 	err = cmd.Run()
@@ -169,7 +168,7 @@ func RunRelease(cwd, conf_path string) {
 	T_Success_Log = NewServantLog(config, SUCCESS)
 	defer T_Log.close()
 	defer T_Success_Log.close()
-	patchRequest(config)
+	patchRequest(config,cwd)
 }
 
 func GetConf(cwd, conf_path string) (T_Config, bool) {
@@ -211,7 +210,7 @@ func GetConf(cwd, conf_path string) (T_Config, bool) {
 	return config, false
 }
 
-func patchRequest(config T_Config) {
+func patchRequest(config T_Config,cwd string) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -229,7 +228,6 @@ func patchRequest(config T_Config) {
 	writer.WriteField("module_name", config.getServer())
 	writer.WriteField("comment", config["COMMENT"])
 	package_path := config["PACKAGE_PATH"]
-	cwd, _ := os.Getwd()
 
 	file, err := os.Open(filepath.Join(cwd, package_path))
 	if err != nil {
