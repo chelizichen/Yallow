@@ -19,6 +19,7 @@
                     <el-button type="text" @click="publish(scope.row, true)">编译发布</el-button>
                     <el-button type="text" @click="publish(scope.row, false)">发布</el-button>
                     <el-button type="text" @click="getLog(scope.row)">查看日志</el-button>
+                    <el-button type="text" @click="openProject(scope.row)">打开项目</el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -78,7 +79,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import { OpenTarsReleaseFile, LoadConf, MergeConf, RunRelease, RunReleaseBeforeBuild, CheckBuildLog } from '../../../wailsjs/go/apis/App'
+import { OpenTarsReleaseFile, LoadConf, MergeConf, RunRelease, RunReleaseBeforeBuild, CheckBuildLog, OpenProject } from '../../../wailsjs/go/apis/App'
 import { ElNotification } from 'element-plus';
 import _ from 'lodash';
 
@@ -207,6 +208,10 @@ function getLog(row: formType) {
             logdata.value = res
         })
     },3000)
+}
+
+function openProject(row:formType){
+    OpenProject(row.filePath)
 }
 </script>
 

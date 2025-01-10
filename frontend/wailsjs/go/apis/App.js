@@ -14,6 +14,10 @@ export function MergeConf(arg1) {
   return window['go']['apis']['App']['MergeConf'](arg1);
 }
 
+export function OpenProject(arg1) {
+  return window['go']['apis']['App']['OpenProject'](arg1);
+}
+
 export function OpenTarsReleaseFile() {
   return window['go']['apis']['App']['OpenTarsReleaseFile']();
 }

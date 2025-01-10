@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 
@@ -142,4 +143,12 @@ func (a *App) CheckBuildLog(filePath string) []string {
 		fmt.Printf("读取日志文件时发生错误: %v \n", err)
 	}
 	return rsp
+}
+
+func (a *App)OpenProject(filePath string){
+	cwd := filepath.Dir(filePath)
+	var cmd *exec.Cmd   = exec.Command("marscode", "./")
+	cmd.Dir = cwd
+	cmd.Env = append(cmd.Env, os.Environ()...)
+	cmd.Run()
 }

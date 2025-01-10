@@ -7,6 +7,8 @@ export function LoadConf():Promise<string>;
 
 export function MergeConf(arg1:string):Promise<boolean>;
 
+export function OpenProject(arg1:string):Promise<void>;
+
 export function OpenTarsReleaseFile():Promise<string>;
 
 export function RunRelease(arg1:string):Promise<void>;
