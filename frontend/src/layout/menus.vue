@@ -14,9 +14,12 @@
         <el-menu-item index="1">
           <span >导入文件</span>
         </el-menu-item>
-        <!-- <el-menu-item index="2">
+        <el-menu-item index="2">
           <span >JSON判断</span>
-        </el-menu-item> -->
+        </el-menu-item>
+        <el-menu-item index="3">
+          <span >设置</span>
+        </el-menu-item>
       </el-menu>
     </div>
 </template>

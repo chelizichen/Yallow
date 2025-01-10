@@ -3,11 +3,13 @@ package apis
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -27,6 +29,8 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) Startup(ctx context.Context) {
 	a.Ctx = ctx
+	conf := a.initConf()
+	a.SetAppSet(conf)
 	// initListenKeyboard()
 }
 
@@ -56,6 +60,20 @@ func (a *App) OpenTarsReleaseFile() string {
 	return file.toString()
 }
 
+func (a *App) GetFolderPath() string {
+	result, err := runtime.OpenDirectoryDialog(a.Ctx, runtime.OpenDialogOptions{
+		Title: "Open Folder",
+	})
+	// 设置回参
+	if err != nil {
+		fmt.Println(err)
+	}
+	if result == "" {
+		return ""
+	}
+	return result
+}
+
 func (a *App) RunRelease(targetReleaseFilePath string) {
 	cwd := filepath.Dir(targetReleaseFilePath)
 	_, file_name := filepath.Split(targetReleaseFilePath)
@@ -63,7 +81,7 @@ func (a *App) RunRelease(targetReleaseFilePath string) {
 	RunRelease(cwd, file_name)
 }
 
-func (a *App) RunReleaseBeforeBuild(targetReleaseFilePath, build_cmd string) string {
+func (a *App) RunReleaseBeforeBuild(targetReleaseFilePath, build_cmd string) (string,error) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
@@ -74,10 +92,10 @@ func (a *App) RunReleaseBeforeBuild(targetReleaseFilePath, build_cmd string) str
 	fmt.Println(cwd, file_name)
 	hash, err := RunBuild(cwd, build_cmd)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	RunRelease(cwd, file_name)
-	return hash
+	return hash,nil
 }
 
 var confLock sync.RWMutex
@@ -85,7 +103,7 @@ var confLock sync.RWMutex
 func (a *App) LoadConf() (string, error) {
 	confLock.RLock()
 	defer confLock.RUnlock()
-	logDir := os.Getenv("LOG_DIR")
+	logDir := AppSet["LOG_DIR"]
 	conf_path := filepath.Join(logDir, "tars-release-conf.json")
 	if _, err := os.Stat(conf_path); os.IsNotExist(err) {
 		file, err := os.Create(conf_path)
@@ -110,7 +128,7 @@ func (a *App) LoadConf() (string, error) {
 func (a *App) MergeConf(conf string) (bool, error) {
 	confLock.Lock()
 	defer confLock.Unlock()
-	logDir := os.Getenv("LOG_DIR")
+	logDir := AppSet["LOG_DIR"]
 	conf_path := filepath.Join(logDir, "tars-release-conf.json")
 	err := os.WriteFile(conf_path, []byte(conf), 0644)
 	if err != nil {
@@ -120,7 +138,7 @@ func (a *App) MergeConf(conf string) (bool, error) {
 }
 
 func (a *App) CheckBuildLog(filePath string) []string {
-	logDir := os.Getenv("LOG_DIR")
+	logDir := AppSet["LOG_DIR"]
 	cwd := filepath.Dir(filePath)
 	hash := CurrentHashs[cwd]
 	conf_path := filepath.Join(logDir, fmt.Sprintf("tars-release-%s.log", hash))
@@ -145,10 +163,90 @@ func (a *App) CheckBuildLog(filePath string) []string {
 	return rsp
 }
 
-func (a *App)OpenProject(filePath string){
+func PackEnviron() []string {
+	rsp := make([]string, 0)
+	rsp = append(rsp, os.Environ()...)
+	rsp = append(rsp,"PATH=" + os.Getenv("PATH") + ":/usr/local/bin")
+   return rsp
+}
+
+func (a *App) OpenProject(filePath string) string {
 	cwd := filepath.Dir(filePath)
-	var cmd *exec.Cmd   = exec.Command("marscode", "./")
+	var cmd *exec.Cmd = exec.Command("marscode", "./")
 	cmd.Dir = cwd
-	cmd.Env = append(cmd.Env, os.Environ()...)
-	cmd.Run()
+	cmd.Env = append(cmd.Env, PackEnviron()...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		es := fmt.Sprintf("Error: %v \n Output: %s \n OsEnv: %v", err.Error(), output, cmd.Env)
+		return es
+	}
+	return ""
+}
+
+var AppSet = make(map[string]string)
+
+func (a *App) GetAppSet() map[string]string {
+	cwd, _ := os.Getwd()
+	confPath := filepath.Join(cwd, "etc", "yallow.conf")
+	AppSet["confPath"] = confPath
+	AppSet["cwd"] = cwd
+	return AppSet
+}
+
+func (a *App) SetAppSet(sets map[string]string) {
+	cwd, _ := os.Getwd()
+	sets["cwd"] = cwd
+	confPath := filepath.Join(cwd, "etc", "yallow.conf")
+	sets["confPath"] = confPath
+	AppSet = sets
+	err := writeAppSetToFile(AppSet)
+	if err != nil {
+		fmt.Println("写入 AppSet 到文件失败:", err)
+	}
+}
+func writeAppSetToFile(appSet map[string]string) error {
+	// 定义文件路径
+	cwd, _ := os.Getwd()
+	filePath := filepath.Join(cwd, "etc", "yallow.conf")
+
+	// 打开文件，如果文件不存在则创建，存在则截断（覆盖）
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// 将 map 数据转换为 key = value 的形式并写入文件
+	for key, value := range appSet {
+		_, err := fmt.Fprintf(file, "%s = %s\n", key, value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *App) initConf() map[string]string {
+	cwd, _ := os.Getwd()
+	file, err := os.Open(filepath.Join(cwd, "etc", "yallow.conf"))
+	config := make(map[string]string)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		fmt.Println("yallow.conf 不存在")
+		return config
+	}
+	defer file.Close()
+	defer debugConfig(config)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			config[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+		}
+	}
+	return config
 }

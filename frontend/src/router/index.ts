@@ -12,6 +12,11 @@ export const routes = [
         component: () => import('../views/utils/index.vue')
     },
     {
+        path: '/set',
+        name: 'set',
+        component: () => import('../views/set/index.vue')
+    },
+    {
         path: '/',
         redirect:'/confs'
     }

@@ -6,6 +6,14 @@ export function CheckBuildLog(arg1) {
   return window['go']['apis']['App']['CheckBuildLog'](arg1);
 }
 
+export function GetAppSet() {
+  return window['go']['apis']['App']['GetAppSet']();
+}
+
+export function GetFolderPath() {
+  return window['go']['apis']['App']['GetFolderPath']();
+}
+
 export function LoadConf() {
   return window['go']['apis']['App']['LoadConf']();
 }
@@ -28,4 +36,8 @@ export function RunRelease(arg1) {
 
 export function RunReleaseBeforeBuild(arg1, arg2) {
   return window['go']['apis']['App']['RunReleaseBeforeBuild'](arg1, arg2);
+}
+
+export function SetAppSet(arg1) {
+  return window['go']['apis']['App']['SetAppSet'](arg1);
 }

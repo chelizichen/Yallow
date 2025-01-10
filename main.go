@@ -24,7 +24,9 @@ func main() {
 	FileMenu.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
 		runtime.Quit(app.Ctx)
 	})
-
+	FileMenu.AddText("Copy", keys.CmdOrCtrl("c"), func(t *menu.CallbackData) {
+		runtime.ClipboardSetText(app.Ctx, t.MenuItem.Label)
+	})
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "Yallow",

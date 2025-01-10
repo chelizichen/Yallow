@@ -93,7 +93,7 @@ func NewServantLog(args I_ServantLog_Args, t string) *servantLog {
 	if app == "" || name == "" {
 		panic("module or name is empty")
 	}
-	logDir := os.Getenv("LOG_DIR")
+	logDir := AppSet["LOG_DIR"]
 	if logDir == "" {
 		panic("LOG_DIR environment variable is not set")
 	}
@@ -128,9 +128,17 @@ var CurrentHashs = make(map[string]string)
 func RunBuild(cwd, build_cmd string) (string, error) {
 	fmt.Println("debug.runbuild >> build_cmd", build_cmd)
 	fmt.Println("debug.runbuild >> cwd", cwd)
-	cmd := exec.Command("sh", "-c", build_cmd)
+	// if strings.Index(build_cmd, "npm")!= -1 {
+	// 	// /Users/leemulus/.nvm/versions/node/v16.20.1/bin/npm
+	// 	build_cmd = strings.ReplaceAll(build_cmd, "npm", "/Users/leemulus/.nvm/versions/node/v16.20.1/bin/npm")
+	// }
+	cmd := exec.Command("/bin/sh", "-c", build_cmd)
 	cmd.Dir = cwd
-	logDir := os.Getenv("LOG_DIR")
+	cmd.Env = append(cmd.Env, PackEnviron()...)
+	logDir :=  AppSet["LOG_DIR"]
+	if logDir == "" {
+		panic("LOG_DIR environment variable is not set")
+	}
 	hash := RandomHash()
 	CurrentHashs[cwd] = hash
 	logPath := filepath.Join(logDir, fmt.Sprintf("tars-release-%s.log", hash))
@@ -138,6 +146,7 @@ func RunBuild(cwd, build_cmd string) (string, error) {
 	// 检查文件是否存在
 	_, err := os.Stat(logPath)
 	if os.IsNotExist(err) {
+		err = nil
 		// 如果文件不存在，创建一个新文件
 		file, err := os.Create(logPath)
 		if err != nil {

@@ -3,14 +3,20 @@
 
 export function CheckBuildLog(arg1:string):Promise<Array<string>>;
 
+export function GetAppSet():Promise<{[key: string]: string}>;
+
+export function GetFolderPath():Promise<string>;
+
 export function LoadConf():Promise<string>;
 
 export function MergeConf(arg1:string):Promise<boolean>;
 
-export function OpenProject(arg1:string):Promise<void>;
+export function OpenProject(arg1:string):Promise<string>;
 
 export function OpenTarsReleaseFile():Promise<string>;
 
 export function RunRelease(arg1:string):Promise<void>;
 
 export function RunReleaseBeforeBuild(arg1:string,arg2:string):Promise<string>;
+
+export function SetAppSet(arg1:{[key: string]: string}):Promise<void>;

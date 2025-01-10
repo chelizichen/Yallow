@@ -183,11 +183,16 @@ function handleReleaseBeforeBuild() {
         return
     }
     RunReleaseBeforeBuild(form.value.filePath, form.value.BUILD_CMD).then(res => {
+    }).catch(err => {
+        ElNotification.error({
+            title: '失败',
+            message: err,
+        })
     })
     mergeVisible.value = false;
-    ElNotification.success({
-        title: '成功',
-        message: '发布成功',
+    ElNotification.warning({
+        title: '运行中',
+        message: '运行中，请耐心等待',
     })
 
 }
@@ -211,7 +216,14 @@ function getLog(row: formType) {
 }
 
 function openProject(row:formType){
-    OpenProject(row.filePath)
+    OpenProject(row.filePath).then(res=>{
+        if(res !== ""){
+            ElNotification.error({
+                title: '失败',
+                message: '打开失败' + res,
+            })
+        }
+    })
 }
 </script>
 
